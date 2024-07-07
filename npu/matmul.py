@@ -28,19 +28,28 @@ def profile(inC, outC, batch, dtype, n_iters=500, skip_first=10):
     data = []
     mac = inC * outC * batch
     memcpy = (inC + outC) * batch
+    
 
-    X = np.random.uniform(-1, 1, (batch, inC)).astype(np.float16)
-    W = np.random.uniform(-1, 1, (outC, inC)).astype(np.float16)
-
-    if dtype == "float16":
+    if dtype == "float32":
+        X = np.random.uniform(-1, 1, (batch, inC)).astype(np.float32)
+        W = np.random.uniform(-1, 1, (outC, inC)).astype(np.float32)
+        matmul_csl = Linear
+        args = [W]
+    elif dtype == "float16": 
+        X = np.random.uniform(-1, 1, (batch, inC)).astype(np.float16)
+        W = np.random.uniform(-1, 1, (outC, inC)).astype(np.float16)
         matmul_csl = Linear
         args = [W]
     elif dtype == "int8":
+        X = np.random.uniform(-1, 1, (batch, inC)).astype(np.float16)
+        W = np.random.uniform(-1, 1, (outC, inC)).astype(np.float16)
         weights, scale = quantize_tensor(torch.tensor(W))
         scale *= np.sqrt(inC)
         matmul_csl = partial(QLinear, dtype=np.int8)
         args = [weights.numpy(), scale.numpy()]
     elif dtype == "int4":
+        X = np.random.uniform(-1, 1, (batch, inC)).astype(np.float16)
+        W = np.random.uniform(-1, 1, (outC, inC)).astype(np.float16)
         weights, scale = quantize_tensor(torch.tensor(W), (int4.min, int4.max))
         scale *= np.sqrt(inC)
         weights = compress_to_i4(weights)
@@ -108,7 +117,7 @@ def define_and_parse_args():
     parser.add_argument(
         "--dtype",
         default="float16",
-        choices=["float16", "int8", "int4"],
+        choices=["float32", "float16", "int8", "int4"],
         help="Select the target dtype (default: %(default)s)",
     )
 
